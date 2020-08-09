@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <title>Channel Pakkage Selector</title>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+      <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+      <style type="text/css">
+        html,body {
+            height: 100%;
+            width: 100%;
+        }
+
+        body {
+            overflow-y: auto;
+        }
+
+        #chn_list {
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        /* Loader */
+        .loader {
+            border-radius: 100%;
+            position: relative;
+            padding: 50px;
+            margin: 0 auto;
+            opacity: 0;
+            text-align: center;
+            animation: opacitychange 1s ease-in-out infinite;
+        }
+
+        @keyframes opacitychange{
+            0%, 100%{
+                opacity: 0;
+            }
+
+            60%{
+                opacity: 1;
+            }
+        }
+        .ch-box {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            border: solid 1px;
+            text-align: center;
+            font-weight: bold;
+            animation: chFadeIn 1s ease-in
+        }
+        .ch-chk {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .ch-name {
+            color: #da0015;
+        }
+        .ch-price {
+            color: #000000;
+        }
+        .pkg-box {
+            padding: 25px;
+        }
+        @keyframes chFadeIn{
+            0%{
+                opacity: 0;
+            }
+
+            60%{
+                opacity: 1;
+            }
+        }
+      </style>
+    </head>
+    <body>
+
+    <nav class="navbar navbar-inverse">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Channel Pakkage Selector</a>
+        </div>
+      </div>
+    </nav>
+      
+    <div class="container" id="chn_list_container">
+        <h3>Select Channels <span class="glyphicon glyphicon-hand-down"></span></h3>
+        <p>Please choose channels and click 'Proceed' to get the Suitable Package</p>
+        <div class="loader" id="chn_loader" style="display: none;">
+            Loading... Please wait...
+        </div>
+        <div class="row" id="chn_list">
+            
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="pull-left">
+                    Selected Channels : <span id="sel_ch_cnt"></span>
+                </div>
+                <button type="button" class="btn btn-primary pull-right" id="chn_proceed">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="pkg_list_container" style="display: none;">
+        <div class="loader" id="pkg_loader" style="display: none;">
+            Loading... Please wait...
+        </div>
+        <div class="row" id="pkg_list">
+            
+        </div>
+        <br>
+        <div class="row">
+            <div class="col-md-12">
+                <button type="button" class="btn btn-danger pull-left" onclick="showChannelView()">
+                    <span class="glyphicon glyphicon-arrow-left"></span> Choose Channels</button>
+            </div>
+        </div>
+    </div>
+
+
+    </body>
+    <script type="text/javascript">
+        var channels = {};
+        var sel_chns = [];
+
+        function showChannelView()
+        {
+            $('#pkg_list_container').hide();
+            $('#chn_list_container').show();
+        }
+
+        function getChannels()
+        {
+            $('#pkg_list_container').hide();
+            $('#chn_list_container').show();
+            $('#chn_loader').show();
+            $('#chn_list').html('');
+            $.ajax({
+                type: "GET",
+                url: "getChannels.php",
+                data: {},
+                dataType: "json",
+                success: function(data){
+                    $('#chn_loader').hide();
+                    $.each(data, function(i, v) {
+                        channels[v.id] = v.name;
+                        var c_str = '';
+                        c_str += '<div class="col-md-2">';
+                        c_str += '<div id="ch_box_'+v.id+'" class="ch-box btn-warning" data-ch="'+v.id+'">';
+                        c_str += '<div class="ch-name">'+v.name+'</div>';
+                        c_str += '<div class="ch-price">'+v.price+' ₹ </div>';
+                        c_str += '<div>';
+                        c_str += '<input type="checkbox" id="ch_chk_'+v.id+'" class="ch-chk" data-ch="'+v.id+'" value="'+v.id+'"/>';
+                        c_str += '</div>';
+                        c_str += '</div>';
+                        c_str += '</div>';
+                        $('#chn_list').append(c_str);
+                    });
+                }
+            });
+        }
+
+        function getPackage()
+        {
+            if (sel_chns.length == 0) {
+                alert("Please select Channels !");
+                return;
+            }
+            $('#chn_list_container').hide();
+            $('#pkg_list_container').show();
+            $('#pkg_loader').show();
+            $('#pkg_list').html('');
+            $.ajax({
+                type: "POST",
+                url: "getPackage.php",
+                data: {"channels": sel_chns},
+                dataType: "json",
+                success: function(data){
+                    $('#pkg_loader').hide();
+                    var p_str = '';
+                        p_str += '<div class="col-md-12">';
+                        p_str += '<div class="pkg-box btn-primary">';
+                        p_str += '<div class="pkg-name">Base Package : '+data.base["name"]+'</div>';
+                        if (data.addon!='') {
+                            p_str += '<div class="addn-pkg">AddOn Packages : ';
+                            p_str += '<ul>';
+                            $.each(data.addon, function(i, v) {
+                                p_str += '<li>'+v.name+'</li>';
+                            });
+                            p_str += '</ul>';
+                            p_str += '</div>';
+                        }
+                        if (data.extra!='') {
+                            p_str += '<div class="sep-chnls">Channels Seperate : ';
+                            p_str += '<ul>';
+                            $.each(data.extra, function(i, v) {
+                                p_str += '<li>'+channels[v]+'</li>';
+                            });
+                            p_str += '</ul>';
+                            p_str += '</div>';
+                        }
+                        p_str += '<div class="pkg-price">Total Price: '+data.price+' ₹ </div>';
+                        p_str += '</div>';
+                        p_str += '</div>';
+                        $('#pkg_list').html(p_str);
+                    console.log(data);
+                }
+            });
+        }
+
+        function getSelected()
+        {
+            sel_chns = [];
+            $('.sel-chk').each(function(){
+                sel_chns.push($(this).val());
+            });
+            setTimeout(function(){ $('#sel_ch_cnt').html(sel_chns.length); }, 100);
+        }
+
+        $(document).on('click', '.ch-chk', function(e){
+            if ($(this).prop("checked") == true) {
+                $('#ch_box_'+$(this).data("ch")).removeClass("btn-warning");
+                $('#ch_box_'+$(this).data("ch")).addClass("btn-success");
+                $(this).addClass("sel-chk");
+            } else {
+                $('#ch_box_'+$(this).data("ch")).removeClass("btn-success");
+                $('#ch_box_'+$(this).data("ch")).addClass("btn-warning");
+                $(this).removeClass("sel-chk");
+            }
+            setTimeout(getSelected, 100)
+        });
+
+        $('#chn_proceed').click(function() {
+            getPackage();
+        });
+
+        $(document).ready(function() {
+            getChannels();
+        });
+    </script>
+</html>
